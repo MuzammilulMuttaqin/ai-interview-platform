@@ -1,0 +1,49 @@
+$ npx vitest run
+
+ RUN  v3.2.4 C:/Users/10114480/development/ai-interview-platform/web
+
+ ✓ src/lib/fitGap.test.ts > summarize > counts open questions separately from verdicts 3ms
+ ✓ src/lib/fitGap.test.ts > summarize > never counts a needs-review skill as below expected 1ms
+ ✓ src/lib/fitGap.test.ts > summarySentence > names open questions as not evidence of weakness 0ms
+ ✓ src/lib/fitGap.test.ts > summarySentence > is short when nothing is open 0ms
+ ✓ src/lib/fitGap.test.ts > resultMeta > labels 0 1ms
+ ✓ src/lib/fitGap.test.ts > resultMeta > labels 1 0ms
+ ✓ src/lib/fitGap.test.ts > resultMeta > labels 2 0ms
+ ✓ src/lib/fitGap.test.ts > resultMeta > labels 3 0ms
+ ✓ src/lib/fitGap.test.ts > resultMeta > labels 4 0ms
+ ✓ src/lib/fitGap.test.ts > resultExplanation > shows the provisional AI level and its direction for a skill that needs review 0ms
+ ✓ src/lib/fitGap.test.ts > resultExplanation > says an uncovered skill is not a weakness 0ms
+ ✓ src/lib/fitGap.test.ts > resultExplanation > adds nothing to a confirmed verdict 0ms
+ ✓ src/lib/fitGap.test.ts > levelSource > prefers the assessor over the AI 0ms
+ ✓ src/hooks/useFitGapReport.test.ts > useFitGapReport > shows a current report straight away without polling 24ms
+ ✓ src/hooks/useFitGapReport.test.ts > useFitGapReport > polls GET only (never re-queues) until the report is ready 7ms
+ ✓ src/hooks/useFitGapReport.test.ts > useFitGapReport > stops after the time limit instead of spinning forever, and can check again 4ms
+ ✓ src/hooks/useFitGapReport.test.ts > useFitGapReport > reports an error after repeated network failures 2ms
+ ✓ src/hooks/useFitGapReport.test.ts > useFitGapReport > does not ask for a report while the portfolio is not ready 2ms
+ ✓ src/hooks/useFitGapReport.test.ts > useFitGapReport > keeps the previous report on screen while regenerating 4ms
+ ✓ src/hooks/useFitGapReport.test.ts > useFitGapReport > ignores a slow response from a run that was replaced 3ms
+ ✓ src/hooks/useFitGapReport.test.ts > useFitGapReport > stops polling when the page is left 3ms
+ ✓ src/components/fitgap/SkillVerdictRow.test.tsx > SkillVerdictRow > shows a briefly-explored skill as needing review, never as a gap 137ms
+ ✓ src/components/fitgap/SkillVerdictRow.test.tsx > SkillVerdictRow > says an uncovered skill is not a weakness 13ms
+ ✓ src/components/fitgap/SkillVerdictRow.test.tsx > SkillVerdictRow > marks a level an assessor confirmed 10ms
+ ✓ src/components/fitgap/SkillVerdictRow.test.tsx > SkillVerdictRow > shows the AI confidence behind an unconfirmed verdict 6ms
+ ✓ src/components/fitgap/SkillVerdictRow.test.tsx > SkillVerdictRow > wraps a very long skill name instead of overflowing 21ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > leads with what needs a decision and counts open questions apart from gaps 198ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > shows both the overall summary and the culture narrative 19ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > does not show the review prompt when every skill is rated with evidence 13ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > clamps a very long narrative behind Show more 87ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > keeps the previous result visible while updating and disables export 28ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > explains a first-time computation instead of an empty page 7ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > offers to check again when it takes too long 72ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > offers a retry when the server cannot be reached 35ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > guides to the vacancy when it has no requirements 11ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > points to the portfolio when it is not ready 8ms
+ ✓ src/pages/fitgap/FitGapReportPage.test.tsx > FitGapReportPage > orders verdict rows as the API sends them (decision first) 27ms
+
+ Test Files  4 passed (4)
+      Tests  37 passed (37)
+   Start at  15:17:05
+   Duration  4.02s (transform 403ms, setup 2.19s, collect 1.41s, tests 758ms, environment 5.04s, prepare 1.26s)
+
+$ npm run typecheck
+typecheck: ok
