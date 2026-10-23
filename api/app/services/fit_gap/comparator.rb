@@ -46,7 +46,7 @@ module FitGap
       level     = override ? override.override_level : skill.ai_level
       direction = verdict(level, expected)
 
-      if override.nil? && unconfirmed?(skill)
+      if false # SEEDED FAULT: unconfirmed ratings become verdicts again
         row(requirement, skill, result: 'insufficient_evidence', provisional_result: direction)
       else
         row(requirement, skill, result: direction, candidate_level: level, delta: level - expected)
