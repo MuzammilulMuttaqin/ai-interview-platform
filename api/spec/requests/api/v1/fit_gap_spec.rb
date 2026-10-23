@@ -120,4 +120,36 @@ RSpec.describe 'Fit/gap reports', type: :request do
       )
     end
   end
+
+  describe 'another company\'s candidate' do
+    let(:other_org)     { create(:organization) }
+    let(:other_session) { create(:session, assessment: create(:assessment, tenant_id: other_org.id)) }
+    let(:other_portfolio) { create(:portfolio, session: other_session) }
+    let!(:other_skill)  { create(:portfolio_skill, portfolio: other_portfolio, ai_level: 2) }
+    let!(:other_report) { create(:fit_gap_report, portfolio: other_portfolio, vacancy: vacancy) }
+
+    it 'cannot be read, exported, or queued for computation' do
+      requests = [
+        -> { get "/api/v1/portfolios/#{other_portfolio.id}/fitgap/#{vacancy.id}", headers: headers },
+        -> { post "/api/v1/portfolios/#{other_portfolio.id}/fitgap", params: { vacancy_id: vacancy.id }, headers: headers },
+        -> { post "/api/v1/portfolios/#{other_portfolio.id}/regenerate_fitgap", params: { vacancy_id: vacancy.id }, headers: headers },
+        -> { get "/api/v1/portfolios/#{other_portfolio.id}/export", params: { format: 'json' }, headers: headers }
+      ]
+
+      requests.each do |request|
+        request.call
+        expect(response).to have_http_status(:not_found)
+      end
+      expect(FitGapGeneratorWorker.jobs).to be_empty
+      expect(FitGapReport.exists?(other_report.id)).to be(true)
+    end
+
+    it 'cannot have a rating overridden' do
+      post "/api/v1/portfolio_skills/#{other_skill.id}/override",
+           params: { override: { override_level: 5 } }, headers: headers
+
+      expect(response).to have_http_status(:not_found)
+      expect(AssessorOverride.count).to eq(0)
+    end
+  end
 end
