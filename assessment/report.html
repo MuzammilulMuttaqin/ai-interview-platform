@@ -64,12 +64,12 @@
   <b>Repository / branch</b><span>rakamindev/ai-interview-platform · <code>feat/trustworthy-fit-gap-report</code></span>
   <b>Pull request</b><span>__PR_URL__</span>
   <b>Video walkthrough</b><span>__VIDEO_URL__</span>
-  <b>Claimed depth</b><span>Full stack, backend-led: the decision rules, data model and failure paths live in the API; the frontend is a complete redesign of one screen and its data flow.</span>
+  <b>Claimed depth</b><span>Full stack, backend-heavy: the decision rules, data model, authorization and failure paths live in the API; the frontend is a complete redesign of one screen and its data flow.</span>
 </div>
 
 <div class="stats">
   <div class="stat"><div class="v">1</div><div class="l">feature, deliberately; everything else is ranked and escalated</div></div>
-  <div class="stat"><div class="v">72</div><div class="l">automated tests from zero (35 RSpec, 37 Vitest)</div></div>
+  <div class="stat"><div class="v">83</div><div class="l">automated tests from zero (46 RSpec, 37 Vitest)</div></div>
   <div class="stat"><div class="v">13</div><div class="l">failures caught by the seeded faults (9 API, 4 web)</div></div>
   <div class="stat"><div class="v">1</div><div class="l">reversible migration, safe for existing rows</div></div>
 </div>
@@ -85,7 +85,7 @@
   <tr><td>2 · Context</td><td>Walked the assessor flow (assessment → interview → portfolio → override → fit/gap → export), inspected DB rows and every payload behind the fit/gap screen, and framed the product around assessors, recruiters, hiring managers and the candidates it judges (§2).</td><td>Data-seam map from <code>portfolio_skills</code> to the React screen</td></tr>
   <tr><td>3 · Gap</td><td>Logged 19 findings across both services, ranked P0–P3 with a one-line impact each, and separated what this PR fixes from what I would escalate (§3).</td><td>Severity table, constraint signal</td></tr>
   <tr><td>4 · Decide</td><td>Chose <b>one</b> feature with the highest harm-to-cost ratio, compared four ways to ship it, and wrote acceptance criteria before code (§4, §5).</td><td>Option matrix, criteria table</td></tr>
-  <tr><td>5 · Build</td><td>Test harnesses first, then comparator → rules version + migration → engine/narrative → controller/PDF → types → data hook → screen. Small commits, each with its tests.</td><td>12 code commits</td></tr>
+  <tr><td>5 · Build</td><td>Test harnesses first, then comparator → rules version + migration → engine/narrative → controller/PDF → types → data hook → screen. Small commits, each with its tests.</td><td>15 code commits</td></tr>
   <tr><td>6 · Prove</td><td>Seeded faults on a scratch branch, watched both suites fail, reverted, merged with <code>--no-ff</code>. Captured the real "before" by running <code>main</code> against the same data, then every state of the "after" against the running API (§7, §8).</td><td>Evidence files, screenshots</td></tr>
 </table>
 
@@ -115,8 +115,8 @@
   <tr><th style="width:190px">Principle</th><th>What it means here</th><th style="width:80px">Status</th></tr>
   <tr><td>Accuracy of personal data processing</td><td>A low-confidence AI rating is not an accurate statement about a person. It is now shown as unconfirmed and never counted as a gap.</td><td><span class="tag fixed">This PR</span></td></tr>
   <tr><td>Right to object to decisions made solely by automated processing (Art. 10)</td><td>Verdicts on thin evidence now <em>require</em> a human confirmation before they count; the screen states the report supports, not makes, the decision.</td><td><span class="tag fixed">This PR</span></td></tr>
-  <tr><td>Data minimisation in logs</td><td>Narrative failures now log the error class only (no model or candidate text). Broader log filtering is not in scope.</td><td><span class="tag fixed">Partly</span></td></tr>
-  <tr><td>Confidentiality / access limitation</td><td>Portfolio and fit/gap lookups are not tenant-scoped (finding P0-1).</td><td><span class="tag esc">Escalated</span></td></tr>
+  <tr><td>Data minimisation in logs and errors</td><td>Fit/gap and portfolio failures now store and log the error class only, never model output or transcript text.</td><td><span class="tag fixed">This PR</span></td></tr>
+  <tr><td>Confidentiality / access limitation</td><td>Every endpoint this feature uses (fit/gap, export, override) now only reaches the current company's candidates. The structural fix for the rest of the schema is escalated.</td><td><span class="tag fixed">This PR</span></td></tr>
   <tr><td>Transparency, consent, retention</td><td>No candidate notice of AI assessment, no objection channel, no retention period for transcripts.</td><td><span class="tag esc">Escalated</span></td></tr>
 </table>
 
@@ -126,7 +126,7 @@
 <p style="font-size:9pt;color:var(--muted)">D = defective implementation, M = missing specification. Only rows on the feature's path were fixed; the rest are ranked so a lead can schedule them.</p>
 <table>
   <tr><th style="width:34px">Sev</th><th style="width:26px">Type</th><th style="width:38px">Svc</th><th>Finding and one-line impact</th><th style="width:72px">Status</th></tr>
-  <tr><td class="sev P0">P0</td><td>D</td><td>api</td><td><b>Cross-tenant access.</b> <code>Portfolio.find</code> / <code>PortfolioSkill.find</code> are not scoped to the tenant. <i>Impact: any assessor can read, export or override another company's candidate.</i></td><td><span class="tag esc">Escalated</span></td></tr>
+  <tr><td class="sev P0">P0</td><td>D</td><td>api</td><td><b>Cross-tenant access.</b> <code>Portfolio.find</code> / <code>PortfolioSkill.find</code> are not scoped to the tenant. <i>Impact: any assessor can read, export or override another company's candidate (reproduced: 201 on a cross-tenant override).</i></td><td><span class="tag fixed">Fixed on feature endpoints</span><br><span class="tag esc">Structural: escalated</span></td></tr>
   <tr><td class="sev P0">P0</td><td>D</td><td>seam</td><td><b>Runaway jobs, endless spinner.</b> While generating, every poll's 404 triggered a new POST and a new job (one every 5 s), with no end if the job failed. <i>Impact: assessor blocked; queue and AI cost grow while the tab is open.</i></td><td><span class="tag fixed">Fixed</span></td></tr>
   <tr><td class="sev P1">P1</td><td>M</td><td>api</td><td><b>Thin evidence presented as a verdict.</b> Low-confidence AI ratings are compared like any other and become "Gap". <i>Impact: candidates marked down for what the interview did not explore.</i></td><td><span class="tag fixed">Fixed (core)</span></td></tr>
   <tr><td class="sev P1">P1</td><td>D</td><td>seam</td><td><b>API/UI contract mismatch.</b> UI reads <code>required_level</code>/<code>is_override</code>; API sends <code>expected_level</code> and no override flag. <i>Impact: "Required" always blank, corrections invisible (Fig. 1).</i></td><td><span class="tag fixed">Fixed</span></td></tr>
@@ -135,9 +135,9 @@
   <tr><td class="sev P1">P1</td><td>D</td><td>api</td><td><b>Stored verdicts never expire.</b> Reports computed under the old rules would keep being served; editing a vacancy never invalidates a report. <i>Impact: hiring team reads outdated verdicts.</i></td><td><span class="tag fixed">Rules: fixed</span><br><span class="tag open">Vacancy edit: open</span></td></tr>
   <tr><td class="sev P1">P1</td><td>M</td><td>both</td><td><b>No candidate notice of AI processing, no way to contest.</b> <i>Impact: UU PDP exposure on every interview.</i></td><td><span class="tag esc">Escalated</span></td></tr>
   <tr><td class="sev P1">P1</td><td>D</td><td>api</td><td><b>Login binds the token to the first organisation</b> when no tenant header is sent. <i>Impact: users can get a token for the wrong tenant.</i></td><td><span class="tag esc">Escalated</span></td></tr>
-  <tr><td class="sev P2">P2</td><td>D</td><td>api</td><td><b>Missing level stored as L1.</b> <code>nil.to_i.clamp(1,5)</code> turns "no level returned" into the lowest rating. <i>Impact: invented negative rating.</i> Adjacent to this feature; next PR.</td><td><span class="tag open">Open</span></td></tr>
-  <tr><td class="sev P2">P2</td><td>D</td><td>api</td><td><b>Non-atomic portfolio regeneration</b> (<code>destroy_all</code> then <code>create!</code>, no transaction). <i>Impact: a portfolio silently missing skills.</i></td><td><span class="tag open">Open</span></td></tr>
-  <tr><td class="sev P2">P2</td><td>D</td><td>api</td><td><b>Raw error text persisted</b> (<code>generation_error = e.message</code>), which can quote transcript content. <i>Impact: candidate speech in API responses and logs.</i></td><td><span class="tag open">Open</span></td></tr>
+  <tr><td class="sev P2">P2</td><td>D</td><td>api</td><td><b>Missing level stored as L1.</b> <code>nil.to_i.clamp(1,5)</code> turns "no level returned" into the lowest rating. <i>Impact: invented negative rating.</i> "L4" also became L1, 9 became L5.</td><td><span class="tag fixed">Fixed</span></td></tr>
+  <tr><td class="sev P2">P2</td><td>D</td><td>api</td><td><b>Non-atomic portfolio regeneration</b> (<code>destroy_all</code> then <code>create!</code>, no transaction). <i>Impact: a portfolio silently missing skills.</i></td><td><span class="tag fixed">Fixed</span></td></tr>
+  <tr><td class="sev P2">P2</td><td>D</td><td>api</td><td><b>Raw error text persisted</b> (<code>generation_error = e.message</code>), which can quote transcript content. <i>Impact: candidate speech in API responses and logs.</i></td><td><span class="tag fixed">Fixed</span></td></tr>
   <tr><td class="sev P2">P2</td><td>D</td><td>web</td><td><b>Overall recommendation hidden</b> whenever a culture paragraph exists (<code>culture || overall</code>). <i>Impact: the summary the manager needs is missing.</i></td><td><span class="tag fixed">Fixed</span></td></tr>
   <tr><td class="sev P2">P2</td><td>D</td><td>api</td><td><b>Empty vacancy crashes the job</b> (presence validation rejects <code>[]</code>); duplicate requirements silently overwritten. <i>Impact: endless spinner or a misleading row.</i></td><td><span class="tag fixed">Fixed</span></td></tr>
   <tr><td class="sev P2">P2</td><td>D</td><td>api</td><td><b><code>audio_complete</code> ends any session as <code>all_covered</code></b> given only the invite token. <i>Impact: a cut-short interview is recorded as complete.</i></td><td><span class="tag esc">Escalated</span></td></tr>
@@ -150,7 +150,7 @@
 <div class="callout warn">
   <b>Constraint signal: what I would raise with a Tech Lead on day one</b>
   <ol>
-    <li><b>Tenancy is enforced by convention, not construction (P0-1).</b> Only models with <code>tenant_id</code> are scoped, through <code>default_scope</code>; child rows (portfolios, skills, reports) depend on every controller joining through a scoped parent. The quick fix is to look portfolios up through <code>Session</code>; the structural fix (denormalised <code>tenant_id</code> or PostgreSQL row-level security) touches the database shared with rakamin-api and needs an owner. I kept it out of this PR so the one feature stays reviewable, but it should ship before anything else.</li>
+    <li><b>Tenancy is enforced by convention, not construction (P0-1).</b> Only models with <code>tenant_id</code> are scoped, through <code>default_scope</code>; child rows (portfolios, skills, reports) depend on every controller joining through a scoped parent. This PR closes it for every endpoint the feature uses (<code>Portfolio.in_current_tenant</code>, proven by request specs). The structural fix (denormalised <code>tenant_id</code> or PostgreSQL row-level security) touches the database shared with rakamin-api and needs an owner.</li>
     <li><b>Authentication trusts JWT claims without a user lookup</b> and login picks the first tenant. It is shared with rakamin-api, so changing it alone could break the main product.</li>
     <li><b>Legal basis for AI interviewing (UU PDP).</b> Notice, consent wording, the objection channel and retention periods are product and legal decisions. This feature builds the technical half (human confirmation before thin evidence counts).</li>
     <li><b>Ambiguity resolved by assumption:</b> "insufficient evidence" means AI confidence <code>low</code>, which the generator defines as ≤1 probe or state <code>initiated</code>. It is one constant (<code>FitGap::Comparator::UNCONFIRMED_CONFIDENCE</code>) if the business wants <code>medium</code> included.</li>
@@ -158,7 +158,7 @@
 </div>
 
 <h2><span class="n">4</span>Strategy: why this one feature, and how</h2>
-<p><b>Choosing the feature.</b> The brief rewards the change that makes the product better for the people it touches. I ranked candidates by <em>harm prevented per unit of risk</em>: tenant isolation is the most severe defect but is a security fix with little product surface; a full report lifecycle is engineering-heavy but changes nothing about what is said about a candidate. The verdict rule is the one place where a few lines of logic decide whether a real person is described as weak, so it is the feature.</p>
+<p><b>Choosing the feature.</b> The brief rewards the change that makes the product better for the people it touches. I ranked candidates by <em>harm prevented per unit of risk</em>: tenant isolation is the most severe defect but is a security fix with little product surface (I still closed it on every endpoint this feature uses, because the brief makes authorized endpoints a baseline); a full report lifecycle is engineering-heavy but changes nothing about what is said about a candidate. The verdict rule is the one place where a few lines of logic decide whether a real person is described as weak, so it is the feature.</p>
 
 <table>
   <tr><th style="width:120px"></th><th>A · Relabel in the UI</th><th class="chosen">B · Evidence-aware comparator + rules version (chosen)</th><th>C · Ask the LLM to judge sufficiency</th><th>D · Block report until reviewed</th></tr>
@@ -192,6 +192,11 @@
   <tr><td>Polling: slow, failing, stuck, left, replaced</td><td>GET-only polling every 3 s; "taking longer" after 90 s; error after 3 network failures; stops on unmount; late responses ignored</td><td>useFitGapReport.test (8)</td></tr>
   <tr><td>Regenerate / update after override</td><td>Previous result stays visible and dimmed; export disabled until current</td><td>hook + page tests</td></tr>
   <tr><td>Long skill names / long narrative</td><td>Names wrap; narrative clamps with "Show more"</td><td>SkillVerdictRow.test, page test, Fig. 4</td></tr>
+  <tr><td>Model returns no level, "seven", 9, 0; or "L4"</td><td>Invalid level: skill dropped, shown as not assessed (never stored as L1). "L4" accepted as 4</td><td>generator_spec</td></tr>
+  <tr><td>Unknown confidence ("HIGH", "sure", nil)</td><td>Normalised; unknown counts as low (needs review)</td><td>generator_spec</td></tr>
+  <tr><td>Write fails part-way through portfolio skills</td><td>Previous skills kept; status failed; only the error class stored</td><td>generator_spec</td></tr>
+  <tr><td>Duplicate jobs for the same report</td><td>Loser of the unique-index race updates the winner's row; any number of runs leaves one report; other errors retried by Sidekiq</td><td>fit_gap_generator_worker_spec (4)</td></tr>
+  <tr><td>Another company's portfolio, report, export or skill</td><td>404; nothing queued, written or overridden</td><td>request spec (2)</td></tr>
   <tr><td>No token</td><td>401</td><td>request spec</td></tr>
 </table>
 
@@ -201,6 +206,8 @@
   <li><b><code>FitGap::Comparator</code></b>: pure, deterministic verdict rules; rows ordered by what needs a decision (gap → needs review → not covered → meets → exceeds).</li>
   <li><b>Migration</b> <code>AddComparatorVersionToFitGapReports</code>: nullable integer, no default (metadata-only change in PostgreSQL, no table rewrite). Existing rows stay <code>NULL</code> = legacy, so they are recomputed instead of trusted. Rollback/migrate proven against a database holding a report (<code>assessment/evidence/migration-reversible.txt</code>).</li>
   <li><b>Engine</b>: stamps the version; narrative prompt treats open questions as open; deterministic fallback; no model call for an empty vacancy; error class only in logs.</li>
+  <li><b>Authorization</b>: fit/gap, export and override lookups go through the session's tenant (<code>Portfolio.in_current_tenant</code>); other tenants get 404.</li>
+  <li><b>Generator and worker</b>: a missing or invalid AI level is no rating (never L1); atomic skill writes; duplicate jobs handled explicitly; error class only in storage and logs.</li>
   <li><b>Controller / exports</b>: legacy reports are not served by GET or JSON/PDF export; POST recomputes them. PDF labels "Needs review", marks unconfirmed and assessor levels, explains open results, and no longer fails on overrides or unusual characters.</li>
 </ul>
 <h3>Frontend (web/)</h3>
@@ -213,14 +220,14 @@
 
 <h2><span class="n">7</span>Verification</h2>
 <div class="stats">
-  <div class="stat"><div class="v">35</div><div class="l">RSpec: comparator, engine, model, request, PDF</div></div>
+  <div class="stat"><div class="v">46</div><div class="l">RSpec: comparator, engine, generator, worker, model, request, PDF</div></div>
   <div class="stat"><div class="v">37</div><div class="l">Vitest: lib, hook, component, page</div></div>
   <div class="stat"><div class="v">✓</div><div class="l">TypeScript typecheck and production build</div></div>
   <div class="stat"><div class="v">✓</div><div class="l">End to end on the running API, Sidekiq and PostgreSQL</div></div>
 </div>
 
 <h3>Seeded fault test</h3>
-<p>On <code>scratch/seeded-fault</code> I committed one fault per service (<code>327bf7c</code>), ran both suites, reverted (<code>a5ab693</code>), re-ran, and merged with <code>--no-ff</code> (<code>604eb56</code>) so fault and revert stay visible in the PR history with a net diff of zero. Full output: <code>assessment/evidence/</code>.</p>
+<p>On <code>scratch/seeded-fault</code> (when the API suite had 31 examples) I committed one fault per service (<code>327bf7c</code>), ran both suites, reverted (<code>a5ab693</code>), re-ran, and merged with <code>--no-ff</code> (<code>604eb56</code>) so fault and revert stay visible in the PR history with a net diff of zero. Full output: <code>assessment/evidence/</code>.</p>
 <div class="pair">
 <pre><b>API fault</b>: low-confidence ratings become verdicts again
 - if override.nil? &amp;&amp; unconfirmed?(skill)
@@ -286,16 +293,16 @@ After revert: Tests  37 passed (37)</pre>
 </ul>
 <h3>Deferred on purpose (one feature, done properly)</h3>
 <ul>
-  <li>Tenant isolation, login tenant binding, candidate notice/consent/retention: escalated (§3).</li>
+  <li>Structural tenancy for the rest of the schema, login tenant binding, candidate notice/consent/retention: escalated (§3).</li>
   <li>Invalidating reports when a vacancy is edited, and a server-side guard against duplicate jobs: the natural next step is an inputs digest on the report, using the same versioning idea as this PR.</li>
-  <li>Generator robustness (missing level stored as L1, non-atomic writes, raw error text) and CI.</li>
+  <li>CI (both suites run locally in under a minute; a GitHub Actions workflow is the next small PR).</li>
 </ul>
 <h3>How to run</h3>
 <pre># API (Ruby 3.3.2, PostgreSQL, Redis)
 cd api &amp;&amp; bundle install
 bundle exec rails db:create db:migrate db:seed
 bundle exec rails runner db/seeds/demo_fit_gap.rb   # assessor@example.test / demo-password-123
-bundle exec rspec                                   # 35 examples
+bundle exec rspec                                   # 46 examples
 
 # Web
 cd web &amp;&amp; npm install &amp;&amp; npm test &amp;&amp; npm run typecheck   # 37 tests
