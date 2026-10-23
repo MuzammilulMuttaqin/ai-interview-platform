@@ -84,10 +84,20 @@ RSpec.describe FitGap::Engine do
       expect(report).to be_persisted
       expect(report.culture_narrative).to be_nil
       expect(report.overall_narrative).to eq(
-        '1 of 3 required skills meet or exceed the expected level and 0 fall below it. ' \
-        '2 are still open (1 needs assessor review, 1 not assessed in the interview) ' \
-        'and should not be read as weaknesses.'
+        '1 of 3 required skills meet or exceed the expected level; 0 fall below it. ' \
+        'Still open: 1 needs assessor review and 1 was not covered in the interview. ' \
+        'These are open questions, not weaknesses.'
       )
+    end
+
+    it 'mentions no open questions when every skill is rated with evidence' do
+      vacancy.vacancy_skills.where(skill_label: %w[System\ Design Kubernetes]).destroy_all
+      create(:vacancy_skill, vacancy: vacancy, skill_label: 'Go', expected_level: 4)
+      create(:portfolio_skill, portfolio: portfolio, skill_label: 'Go', ai_level: 2, ai_confidence: 'medium')
+
+      report = run_engine(fake_gemini.new(error: Gemini::HttpClient::ApiError.new('down')))
+
+      expect(report.overall_narrative).to eq('1 of 2 required skills meet or exceed the expected level; 1 falls below it.')
     end
 
     it 'falls back the same way when the model returns something that is not the expected JSON' do

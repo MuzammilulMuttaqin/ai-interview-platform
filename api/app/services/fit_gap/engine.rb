@@ -101,12 +101,16 @@ module FitGap
       review = count.('insufficient_evidence')
       unseen = count.('not_assessed')
 
-      summary = "#{count.('match', 'exceed')} of #{total} required skills meet or exceed the expected level " \
-                "and #{count.('gap')} fall below it."
-      return summary if (review + unseen).zero?
+      below  = count.('gap')
 
-      "#{summary} #{review + unseen} are still open (#{review} needs assessor review, " \
-        "#{unseen} not assessed in the interview) and should not be read as weaknesses."
+      summary = "#{count.('match', 'exceed')} of #{total} required skills meet or exceed the expected level; " \
+                "#{below} #{below == 1 ? 'falls' : 'fall'} below it."
+      open = []
+      open << "#{review} #{review == 1 ? 'needs' : 'need'} assessor review" if review.positive?
+      open << "#{unseen} #{unseen == 1 ? 'was' : 'were'} not covered in the interview" if unseen.positive?
+      return summary if open.empty?
+
+      "#{summary} Still open: #{open.join(' and ')}. These are open questions, not weaknesses."
     end
   end
 end
