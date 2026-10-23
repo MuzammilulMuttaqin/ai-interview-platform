@@ -17,7 +17,7 @@ export function summarize(comparisons: SkillComparison[]): FitGapSummary {
     comparisons.filter((c) => results.includes(c.result)).length;
 
   const meets = count("match", "exceed");
-  const below = count("gap", "insufficient_evidence"); // SEEDED FAULT
+  const below = count("gap");
   const review = count("insufficient_evidence");
   const notCovered = count("not_assessed");
 
