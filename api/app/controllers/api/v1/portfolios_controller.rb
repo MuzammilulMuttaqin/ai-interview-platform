@@ -113,12 +113,15 @@ module Api
           return json_error("Portfolio is not ready (status: #{portfolio.generation_status})", :unprocessable_entity)
         end
 
-        # Return cached report if it exists and portfolio has no new overrides
-        existing = FitGapReport.find_by(portfolio_id: portfolio.id, vacancy_id: vacancy.id)
+        # Overrides delete the stored report (PortfolioSkillsController), so an
+        # existing report under current rules reflects the latest overrides.
+        existing = current_fit_gap_report(portfolio.id, vacancy.id)
         if existing
           return json_response(report: fit_gap_json(existing))
         end
 
+        # No report, or one stored under older rules: compute it (the engine
+        # updates a legacy row in place).
         FitGapGeneratorWorker.perform_async(portfolio.id, vacancy.id)
         render json: { status: "generating", message: "Fit/gap report generation queued" }, status: :accepted
       rescue ActiveRecord::RecordNotFound
@@ -128,7 +131,7 @@ module Api
       # GET /api/v1/portfolios/:id/fitgap/:vacancy_id
       def show_fitgap
         portfolio = Portfolio.find(params[:id])
-        report    = FitGapReport.find_by(portfolio_id: portfolio.id, vacancy_id: params[:vacancy_id])
+        report    = current_fit_gap_report(portfolio.id, params[:vacancy_id])
 
         if report.nil?
           return json_error("Fit/gap report not found", :not_found)
@@ -202,11 +205,19 @@ module Api
           id:                report.id,
           portfolio_id:      report.portfolio_id,
           vacancy_id:        report.vacancy_id,
-          skill_comparisons: report.skill_comparisons,
-          culture_narrative: report.culture_narrative,
-          overall_narrative: report.overall_narrative,
-          generated_at:      report.generated_at
+          skill_comparisons:  report.skill_comparisons,
+          culture_narrative:  report.culture_narrative,
+          overall_narrative:  report.overall_narrative,
+          comparator_version: report.comparator_version,
+          generated_at:       report.generated_at
         }
+      end
+
+      # Reports stored under older comparison rules are never served or
+      # exported: they may present unconfirmed ratings as gaps.
+      def current_fit_gap_report(portfolio_id, vacancy_id)
+        report = FitGapReport.find_by(portfolio_id: portfolio_id, vacancy_id: vacancy_id)
+        report if report&.current_rules?
       end
 
       def build_export_json(portfolio, vacancy_id = nil)
@@ -216,7 +227,7 @@ module Api
         }
 
         if vacancy_id.present?
-          report = FitGapReport.find_by(portfolio_id: portfolio.id, vacancy_id: vacancy_id)
+          report = current_fit_gap_report(portfolio.id, vacancy_id)
           data[:fit_gap_report] = report ? fit_gap_json(report) : nil
         end
 

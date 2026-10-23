@@ -10,10 +10,11 @@ module Exports
     LEVEL_LABELS = { 1 => 'L1', 2 => 'L2', 3 => 'L3', 4 => 'L4', 5 => 'L5' }.freeze
     CONFIDENCE_LABELS = { 'high' => 'High', 'medium' => 'Medium', 'low' => 'Low' }.freeze
     RESULT_LABELS = {
-      'match'        => 'Match',
-      'gap'          => 'Gap',
-      'exceed'       => 'Exceeds',
-      'not_assessed' => 'Not Assessed'
+      'match'                 => 'Match',
+      'gap'                   => 'Gap',
+      'exceed'                => 'Exceeds',
+      'insufficient_evidence' => 'Needs review',
+      'not_assessed'          => 'Not Assessed'
     }.freeze
 
     def initialize(portfolio:, vacancy: nil)
@@ -21,7 +22,9 @@ module Exports
       @vacancy     = vacancy
       @session     = portfolio.session
       @assessment  = @session.assessment
-      @fit_gap     = vacancy ? FitGapReport.find_by(portfolio: portfolio, vacancy: vacancy) : nil
+      report       = vacancy ? FitGapReport.find_by(portfolio: portfolio, vacancy: vacancy) : nil
+      # A report stored under older rules may show unconfirmed ratings as gaps.
+      @fit_gap     = report if report&.current_rules?
     end
 
     # Returns PDF binary string.
@@ -126,7 +129,7 @@ module Exports
         table_data << [
           c['skill_label'],
           c['expected_level'] ? "L#{c['expected_level']}" : '—',
-          c['candidate_level'] ? "L#{c['candidate_level']}" : '—',
+          candidate_cell(c),
           RESULT_LABELS[c['result']] || c['result'],
           c['delta'] ? (c['delta'] > 0 ? "+#{c['delta']}" : c['delta'].to_s) : '—'
         ]
@@ -137,6 +140,15 @@ module Exports
         t.row(0).background_color = 'E5E7EB'
         t.cells.padding = [6, 8]
         t.cells.size = 10
+      end
+
+      if comparisons.any? { |c| %w[insufficient_evidence not_assessed].include?(c['result']) }
+        pdf.move_down 6
+        pdf.font_size(9) do
+          pdf.text 'Needs review: the interview touched this skill too briefly to rate it reliably; ' \
+                   'the AI level shown is unconfirmed. Not Assessed: the interview did not cover this skill. ' \
+                   'Neither is evidence of weakness.', color: '6B7280'
+        end
       end
 
       if @fit_gap.culture_narrative.present?
@@ -161,6 +173,13 @@ module Exports
                         align:  :center,
                         size:   9,
                         color:  '999999'
+    end
+
+    def candidate_cell(comparison)
+      return "L#{comparison['candidate_level']}" if comparison['candidate_level']
+      return "L#{comparison['ai_level']} (unconfirmed)" if comparison['result'] == 'insufficient_evidence'
+
+      '—'
     end
 
     def format_duration(seconds)
